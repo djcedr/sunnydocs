@@ -1,1 +1,206 @@
-coucou
+<!doctype html>
+<html lang="en">
+
+<head>
+	<!-- Required meta tags -->
+	<meta charset="utf-8">
+
+	<!-- CSS -->
+	<link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
+	<link rel=stylesheet href=https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css>
+		<!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet"
+		integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous"> -->
+	<?!= include('SD_CSS'); ?>
+
+	<!-- Title -->
+	<title>SunnyDocs: create perfect-looking personalised documents in a single click</title>
+
+	<!-- Javascript -->
+	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+		integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous">
+	</script>
+	<script src="https://kit.fontawesome.com/7814937d22.js" crossorigin="anonymous"></script>
+	<?!= include('FrontJavascript'); ?>
+
+</head>
+
+
+
+<body>
+
+	<div id="front_end_data">
+		<div id="FEdata_sd_template"></div>
+		<div id="FEdata_sd_folder"></div>
+		<div id="FEdata_first_row"></div>
+		<div id="FEdata_quota"></div>
+	</div>
+
+	<div id="loadingOverlay">
+		<p>ASSET_loading</p>
+		<p>Sunnydocs is loading!</p>
+	</div>
+
+	<div id="overlay">
+		<div id="overlay_warning_noquota">
+			<p>You have no remaining free documents today. In order to create your documents, you need to subscribe!</p>
+			<p><button onclick='overlayOff()'>Back</button>
+				<button class="action" onclick="openUrl('subscribe')">Subscribe</button></p>
+		</div>
+		<div id="overlay_warning_notready"></div>
+		<div id="animationLogo"></div>
+		<div id="progressBar"></div>
+		<div id="progressText"></div>
+		<div id="statusText" class="overlayTextClass"></div>
+	</div>
+
+	<div id="SD_app">
+		<div id="SD_main_screen_container">
+			<div id="SD_quota">
+				<div id="SD_icon"></div>
+				<div class="callout-quota">
+					<img src="//cdn.jsdelivr.net/gh/frenchcooc/mailmeteor-landing@7.3.4/dist/img/icons/mailmeteor.svg" alt="SunnyDocs-logo" width="24" style="margin-right: 1rem; vertical-align: middle;"><span id="Quota_text">You can create documents today with SunnyDocs.</span><span style="margin-left: 16px;"><a target="_blank" rel="noopener" href="https://mailmeteor.com/pricing?utm_source=addon&amp;utm_medium=form&amp;utm_campaign=quota_available" class="upgrade-button">🚀 UPGRADE →</a></span>
+				</div>
+				<div id="Upgrade_button"></div>
+			</div>
+
+			<div id="SD_tool">
+				<div>
+					<p>
+						<h2><strong>Step 1</strong>: choose your template file
+							<i class="fas fa-question-circle" data-toggle="tooltip" title="This is the Documents or Presentation that will serve as a basis for the multiple documents you want to create"></i>
+						</h2>
+					</p>
+					<p id='sd_template'><a onclick='getOAuthToken("template_file")'>Select your template file</a></p>
+				</div>
+
+				<div>
+					<p>
+						<h2><strong>Step 2</strong>: show us your destination folder
+							<i class="fas fa-question-circle" data-toggle="tooltip" title="This is the Google Drive folder in which you'll find the created documents"></i>
+						</h2>
+					</p>
+					<p id='sd_folder'><a onclick='getOAuthToken("destination_folder")'>Select your destination
+							folder</a>
+					</p>
+				</div>
+
+				<div>
+					<p>
+						<h2><strong>Step 3</strong>: select a few options</h2>
+					</p>
+
+					<table class="table">
+						<tbody>
+							<tr>
+								<td>Select the format(s) of the output files</td>
+								<td>
+									<select id="output_format">
+                    <option selected>Same as original</option>
+                    <option>PDF only</option>
+                    <option>Same as original + PDF</option>
+                  </select>
+								</td>
+							</tr>
+							<tr>
+								<td>How many files should we create?</td>
+								<td>
+									<select id="output_type">
+                    <option selected>One file for each row</option>
+                    <option>All rows in a single file</option>
+                  </select>
+								</td>
+							</tr>
+							<tr>
+								<td>How should we name your files?
+									<i class="fas fa-question-circle" data-toggle="tooltip" title="You can use your column names between double brackets here, for example: Document for {{First name}} - {{Last name}}"></i>
+								</td>
+								<td>
+									<input type="text" id="output_filename" style="width: 300px;">
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+				</div>
+
+				<script src="https://apis.google.com/js/api.js?onload=onApiLoad"></script>
+
+			</div>
+		</div>
+
+		<div id="SD_account_screen_container">
+			<div id="Account_title">Here we'll find info about the user account (later)</div>
+			<div id="Account_sub_title"></div>
+			<div id="Account_table">
+				<!-- Account_table_email
+				Account_table_quota
+				Account_table_plan -->
+			</div>
+		</div>
+
+<!--
+		<div class="addon-footer">
+			<table class="addon-table">
+				<tr>
+					<td class="addon-footer-icons">
+						<div tabindex="0" class="sheetUIFooterIcons" style="outline: none;">
+							<span class="addon-footer-icon"><svg version="1.1" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g><path d="M25.9,31.2c0,13.3,10.8,24.1,24.1,24.1s24.1-10.8,24.1-24.1S63.3,7.1,50,7.1S25.9,17.9,25.9,31.2z M66.1,31.2   c0,8.9-7.2,16.1-16.1,16.1s-16.1-7.2-16.1-16.1S41.1,15.1,50,15.1S66.1,22.3,66.1,31.2z"></path><path d="M12,93.9c2.2,0,4-1.8,4-4c0-6.4,3.1-12.3,8.2-15.9C31.8,68.8,40.7,66,50,66s18.2,2.8,25.8,8.1c5.1,3.6,8.2,9.5,8.2,15.9   c0,2.2,1.8,4,4,4s4-1.8,4-4c0-9-4.4-17.3-11.6-22.4C71.4,61.3,60.9,58,50,58s-21.4,3.3-30.4,9.5C12.4,72.6,8,81,8,89.9   C8,92.2,9.8,93.9,12,93.9z"></path></g></svg></span>
+							<span class="addon-footer-icon addon-dropdown-overlay-icon"><svg version="1.1" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="margin-left: 8px;"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g fill="#000000"><g fill-rule="nonzero"><path d="M9.1,78.1 L25,78.1 C26.6,83.9 31.9,88 38,88 C44.1,88 49.4,83.8 51,78.1 L66.9,78.1 C71.6,78.1 75.4,74.3 75.4,69.6 C75.4,66.8 74,64.1 71.6,62.5 C69.3,60.9 65.5,55.7 65.5,38.2 C65.5,21.4 55.6,14.3 47.9,11.3 C48,10.8 48,10.4 48,10 C48,4.5 43.5,0 38,0 C32.5,0 28,4.5 28,10 C28,10.4 28,10.9 28.1,11.3 C20.4,14.3 10.5,21.4 10.5,38.2 C10.5,55.7 6.7,60.9 4.4,62.5 C2,64.1 0.6,66.8 0.6,69.6 C0.6,74.3 4.4,78.1 9.1,78.1 Z M38,82 C35.2,82 32.7,80.4 31.4,78.1 L44.5,78.1 C43.3,80.4 40.8,82 38,82 Z M38,6 C40.1,6 41.7,7.6 42,9.6 C38.9,9.1 36.1,9.3 34.1,9.6 C34.3,7.6 35.9,6 38,6 Z M16.5,38.2 C16.5,23.7 25.5,18.1 33,16 L33.2,15.9 C33.2,15.9 35.3,15.2 38.2,15.2 C39.7,15.2 41.4,15.4 43.1,15.9 L43.2,15.9 C50.7,18 59.7,23.6 59.7,38.1 C59.7,48.7 61.1,56.7 63.8,61.9 L12.3,61.9 C15.1,56.8 16.5,48.8 16.5,38.2 Z M7.1,68 L68.8,68 C69.2,68.5 69.4,69 69.4,69.6 C69.4,71 68.3,72.1 66.9,72.1 L9.1,72.1 C7.7,72.1 6.6,71 6.6,69.6 C6.6,69 6.8,68.5 7.1,68 Z"></path></g></g></g></svg></span>
+							<span class="addon-footer-icon addon-dropdown-overlay-icon"><svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" style="margin-left: 2px;"><path d="M0 0h24v24H0z" fill="none"></path><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
+                <div class="addon-dropdown-overlay addon-modal-footer-more-menu">
+                  <ul>
+                    <li><a target="_blank" rel="noopener noreferrer" href="https://dashboard.mailmeteor.com/campaigns/scheduled"> Scheduled campaigns </a></li><li role="separator"></li><li><span> Referral program </span></li>
+							      <li><a target="_blank" rel="noopener noreferrer" href="https://forms.gle/peMwkfE6rPo5xfTd9">
+									Have a feedback? </a></li>
+							      <li role="separator"></li>
+							      <li><span> Onboarding </span></li>
+							      <li><a target="_blank" rel="noopener" href="https://support.mailmeteor.com/help/faq?utm_source=addon&amp;utm_medium=footer&amp;utm_campaign=support">Help</a></li>
+							    </ul>
+                </div>
+              </span>
+	
+            </div>
+          </td>
+		        
+          <td class="addon-footer-actions"><button disabled="disabled" class="addon-button">Preview email</button>
+            <div class="addon-button-group">
+              <button disabled="disabled" data-tooltip="Ready to launch?" class="addon-button addon-button-action addon-tooltip--top"> Send emails </button><button disabled="disabled" class="addon-button addon-button-action addon-button-dropdown"><span class="addon-button-dropdown-caret"></span><div class="addon-dropdown-overlay addon-modal-home-menu-sending"><ul><li><span><img src="//cdn.jsdelivr.net/gh/frenchcooc/mailmeteor-landing@7.0.18/dist/img/icons/schedule-send-blue.svg"> Schedule send </span></li><li><span><img src="//cdn.jsdelivr.net/gh/frenchcooc/mailmeteor-landing@7.0.18/dist/img/icons/follow-up-blue.svg"> Follow-up </span></li></ul></div></button>
+            </div>
+          </td>
+        </tr>
+		  </table>
+    </div>
+-->
+
+
+	<div id="SD_footer">
+		<div id="Footer_left_icons">
+			<div id="Account_icon"><button onclick='toggleAccountDiv()'>Account</button></div>
+			<div id="Notif_icon"></div>
+			<div id="Dots_icon"></div>
+		</div>
+
+		<div id="Right_buttons">
+			<div id="Right_buttons_account_screen">
+				<button onclick='openUrl("help")'>Get help</button>
+				<button class="action" onclick='toggleAccountDiv()'>Back</button>
+			</div>
+			<div id="Right_buttons_main_screen">
+				<div class="block">
+					<div id='preview_url'></div>
+					<button onclick='createDocs("one")'>Preview doc</button>
+					<button class="action" onclick='createDocs("all")'>Create docs</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	</div>
+
+
+
+
+
+</body>
+
+</html>

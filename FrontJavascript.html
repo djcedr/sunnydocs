@@ -1,0 +1,432 @@
+<script>
+	// IMPORTANT: Replace the value for DEVELOPER_KEY with the API key obtained
+// from the Google Developers Console.
+var DEVELOPER_KEY = 'AIzaSyAPQcyrfToWZ9g1wlQGOE6jhZWaHinPDVk';
+var DIALOG_DIMENSIONS = { width: 600, height: 425 };
+var pickerApiLoaded = false;
+
+/**
+ * Loads the Google Picker API.
+ */
+function onApiLoad() {
+  gapi.load('picker', {
+    'callback': function () {
+      pickerApiLoaded = true;
+      window.addEventListener('load', function () {
+        // Prepopulate with last values used
+        google.script.run.withSuccessHandler(populateFolder).withFailureHandler(doNothing).readDriveData("sd_folder");
+        google.script.run.withSuccessHandler(populateTemplate).withFailureHandler(doNothing).readDriveData("sd_template");
+        google.script.run.withSuccessHandler(populateFileName).withFailureHandler(doNothing).readNameTemplate();
+      })
+    }
+  });
+}
+
+
+// Failure handler to avoid throwing an error in the JS console
+function doNothing(err){console.log(err);}
+function justReturn(valeur){alert(valeur);return valeur;}
+
+// Success handler to display selected destination folder
+function populateFolder(folderArray) {
+  document.getElementById('sd_folder').innerHTML =
+    '<a onclick=getOAuthToken("destination_folder")><i class="fas fa-edit" title="Select another destination folder"></i></a> &nbsp; <a target="_blank" href="' + folderArray[0] + '">' + folderArray[1] + '</a>';
+  document.getElementById('FEdata_sd_folder').innerHTML = folderArray[0];
+}
+
+// Success handler to display selected template file
+function populateTemplate(templateArray) {
+  document.getElementById('sd_template').innerHTML =
+    '<a onclick=getOAuthToken("template_file")><i class="fas fa-edit" title="Select another template file"></i></a> &nbsp; <a target="_blank" href="' + templateArray[0] + '">' + templateArray[1] + '</a>';
+  document.getElementById('FEdata_sd_template').innerHTML = templateArray[0];
+
+}
+
+// Success handlers to prefill the filename template
+function populateFileName(fileNameTemplate){
+  document.getElementById('output_filename').value = fileNameTemplate;
+}
+
+
+
+/**
+ * Gets the user's OAuth 2.0 access token from the server-side script so that
+ * it can be passed to Picker. This technique keeps Picker from needing to
+ * show its own authorization dialog, but is only possible if the OAuth scope
+ * that Picker needs is available in Apps Script. Otherwise, your Picker code
+ * will need to declare its own OAuth scopes.
+ */
+function getOAuthToken(use_case) {
+  if (use_case == "template_file") {
+    google.script.run.withSuccessHandler(createPickerFile)
+      .withFailureHandler(showErrorFile).getOAuthToken();
+  }
+  else if (use_case == "destination_folder") {
+    google.script.run.withSuccessHandler(createPickerFolder)
+      .withFailureHandler(showErrorFolder).getOAuthToken();
+  }
+}
+
+
+/**
+ * PICKER FOR TEMPLATE FILE
+ */
+
+/**
+ * Creates a Picker that can access the user's docs & presentations. This function
+ * uses advanced options to hide the Picker's left navigation panel and
+ * default title bar.
+ *
+ * @param {string} token An OAuth 2.0 access token that lets Picker access the
+ *     file type specified in the addView call.
+ */
+function createPickerFile(token) {
+  if (pickerApiLoaded && token) {
+    var picker = new google.picker.PickerBuilder()
+      // Instruct Picker to display only spreadsheets in Drive. For other
+      // views, see https://developers.google.com/picker/docs/#otherviews
+      .addViewGroup(new google.picker.ViewGroup(google.picker.ViewId.DOCUMENTS).addView(google.picker.ViewId.PRESENTATIONS))
+      // Hide the navigation panel so that Picker fills more of the dialog.
+      .enableFeature(google.picker.Feature.NAV_HIDDEN)
+      // Hide the title bar since an Apps Script dialog already has a title.
+      .hideTitleBar()
+      .setOAuthToken(token)
+      .setDeveloperKey(DEVELOPER_KEY)
+      .setCallback(pickerCallbackFile)
+      .setOrigin(google.script.host.origin)
+      // Instruct Picker to fill the dialog, minus 2 pixels for the border.
+      .setSize(DIALOG_DIMENSIONS.width - 2,
+        DIALOG_DIMENSIONS.height - 2)
+      .build();
+    picker.setVisible(true);
+  } else {
+    showErrorFile('Unable to load the file picker.');
+  }
+}
+
+/**
+ * A callback function that extracts the chosen document's metadata from the
+ * response object. For details on the response object, see
+ * https://developers.google.com/picker/docs/result
+ *
+ * @param {object} data The response object.
+ */
+function pickerCallbackFile(data) {
+  var action = data[google.picker.Response.ACTION];
+  if (action == google.picker.Action.PICKED) {
+    var doc = data[google.picker.Response.DOCUMENTS][0];
+    var id = doc[google.picker.Document.ID];
+    var url = doc[google.picker.Document.URL];
+    var title = doc[google.picker.Document.NAME];
+    var templateArray = [url, title];
+    populateTemplate(templateArray);
+
+    // save in user properties the id of the chosen template file
+    google.script.run.saveValue("sd_template", id, "document");
+
+  } else if (action == google.picker.Action.CANCEL) {
+    document.getElementById('sd_template').innerHTML = 'Picker canceled.&nbsp;&nbsp;&nbsp;No panic >>  <a onclick=getOAuthToken("template_file")>Select your template file here.</a>';
+  }
+}
+
+/**
+ * Displays an error message within the #sd_template element.
+ *
+ * @param {string} message The error message to display.
+ */
+function showErrorFile(message) {
+  document.getElementById('sd_template').innerHTML = 'Error: ' + message;
+}
+
+/**
+ * PICKER FOR DESTINATION FOLDER
+ */
+
+/**
+ * Creates a Picker to select destination folder
+ */
+function createPickerFolder(token) {
+  if (pickerApiLoaded && token) {
+    var myFolderView = new google.picker.DocsView()
+      .setIncludeFolders(true)
+      .setMimeTypes('application/vnd.google-apps.folder')
+      .setSelectFolderEnabled(true);
+
+    var picker = new google.picker.PickerBuilder()
+      .addView(myFolderView)
+      // Hide the title bar since an Apps Script dialog already has a title.
+      .hideTitleBar()
+      .setOAuthToken(token)
+      .setDeveloperKey(DEVELOPER_KEY)
+      .setCallback(pickerCallbackFolder)
+      .setOrigin(google.script.host.origin)
+      // Instruct Picker to fill the dialog, minus 2 pixels for the border.
+      .setSize(DIALOG_DIMENSIONS.width - 2,
+        DIALOG_DIMENSIONS.height - 2)
+      .build();
+    picker.setVisible(true);
+  } else {
+    showErrorFolder('Unable to load the folder picker.');
+  }
+}
+
+/**
+ * A callback function that extracts the chosen document's metadata from the
+ * response object. For details on the response object, see
+ * https://developers.google.com/picker/docs/result
+ *
+ * @param {object} data The response object.
+ */
+function pickerCallbackFolder(data) {
+  var action = data[google.picker.Response.ACTION];
+  if (action == google.picker.Action.PICKED) {
+    var doc = data[google.picker.Response.DOCUMENTS][0];
+    var id = doc[google.picker.Document.ID];
+    var url = doc[google.picker.Document.URL];
+    var title = doc[google.picker.Document.NAME];
+    var folderArray = [url, title];
+    populateFolder(folderArray);
+
+    // save in user properties the id of the chosen destination folder
+    google.script.run.saveValue("sd_folder", id, "document");
+
+  } else if (action == google.picker.Action.CANCEL) {
+    document.getElementById('sd_folder').innerHTML = 'Picker canceled.&nbsp;&nbsp;&nbsp;No panic >>  <a onclick=getOAuthToken("destination_folder")>Select your destination folder here.</a>';
+  }
+}
+
+/**
+ * Displays an error message within the #sd_folder element.
+ *
+ * @param {string} message The error message to display.
+ */
+function showErrorFolder(message) {
+  document.getElementById('sd_folder').innerHTML = 'Error: ' + message;
+}
+
+
+/**
+ * CREATE MERGED DOCUMENTS
+ */
+
+function getOutputFormat(){
+  var outputFormatField = document.getElementById('output_format').value;
+  switch (outputFormatField){
+    case 'Same as original':
+      return "original";
+      break;
+    case 'PDF only':
+      return "pdf";
+      break;
+    case 'Same as original + PDF':
+      return "both";
+      break;
+    default:
+      return "original";
+  }
+}
+
+
+function checkUntil(conditionFunc, millisecondsInterval) {
+    var retryCount = 0;
+    var retryCountLimit = 100;
+
+    var promise = new Promise((resolve, reject) => {
+        var timer = setInterval(function () {
+            if (conditionFunc()) {
+                clearInterval(timer);
+                resolve();
+                return;
+            }
+            retryCount++;
+            if (retryCount >= retryCountLimit) {
+                clearInterval(timer);
+                reject("retry count exceeded");
+            }
+        }, millisecondsInterval);
+    });
+
+    return promise;
+}
+
+
+function createDocs(oneOrAll) {
+  overlayOn();
+
+  if (document.getElementById("FEdata_sd_folder").innerHTML.length > 0 && document.getElementById("FEdata_sd_template").innerHTML.length > 0) { // if sd_template and sd_folder have been chosen  
+
+    var quotaFE = document.getElementById("FEdata_quota").innerHTML;
+
+    if (parseInt(quotaFE,10) == 0){  // no quota left
+      showDiv("overlay_warning_noquota");
+    }
+    
+    else { // remaining quota
+    document.getElementById('overlay_warning_noquota').innerHTML = "";
+    document.getElementById('overlay_warning_notready').innerHTML = "";
+    document.getElementById("animationLogo").innerHTML = '<p>ASSET_processing_gif</p>';  // Later integrate real asset here
+    document.getElementById("progressBar").innerHTML = "<p>ASSET_progressBar</p>";
+
+    var outputFormat = getOutputFormat();
+    if (oneOrAll == "one") {
+      google.script.run
+        .withSuccessHandler(successOneDoc)
+        .withFailureHandler(errorOneDoc)
+        .createDocsBE("one", outputFormat);
+    }
+    else if (oneOrAll == "all") {
+      google.script.run
+        .withSuccessHandler(successAllDoc)
+        .withFailureHandler(errorAllDoc)
+        .createDocsBE("all", outputFormat);
+    }
+
+    var timer = setInterval(updateProgress, 1000);
+
+    function updateProgress() {
+      google.script.run
+        .withSuccessHandler(stopWhenDone)
+        .getJobStatus();
+
+      function stopWhenDone(jobStatus){   // jobStatus = [processedDocs, totalDocs]
+        var remainingDocs = jobStatus[1]-jobStatus[0];
+        if(jobStatus[1] !== 0 && remainingDocs == 0) {
+          clearInterval(timer);
+          return;
+        }
+      }
+      
+      google.script.run
+        .withSuccessHandler(displayProgress)
+        .getJobStatus();
+    }
+  } // end if there is remaining quota
+  } // end if sd_template and sd_folder have been chosen
+
+  else {
+    document.getElementById('overlay_warning_notready').innerHTML = "<p>Please choose your template file and destination folder first</p><p><button onclick='overlayOff()'>OK let's go!</button></p>";
+  }
+}
+
+function displayProgress(jobStatus){
+  document.getElementById('progressText').innerHTML = jobStatus[0] + " / " + jobStatus[1] + " documents have been created.";   // Later improve that [0] et [1]
+  //console.log("Displayed progress now")
+}
+
+function overlayOn() {
+  google.script.run.resetJobStatus();
+  document.getElementById("overlay").style.display = "block";
+}
+
+function overlayOff() {
+  updateQuota();
+  document.getElementById("overlay").style.display = "none";
+  document.getElementById("animationLogo").innerHTML = "";
+  document.getElementById("progressBar").innerHTML = "";
+  document.getElementById("progressText").innerHTML = "";
+  document.getElementById('statusText').innerHTML = "";
+  document.getElementById('overlay_warning_notready').innerHTML = "";
+  document.getElementById('overlay_warning_noquota').style.display = "none";
+  google.script.run.resetJobStatus();
+}
+
+function openUrl(dest){
+  if (dest == "subscribe"){
+    // UrlFetchApp.fetch('http://www.example.com/analytics?event=open'); // Later, throw analytics event
+     window.open("https://google.fr", '_blank').focus();
+  }
+
+  else  if (dest == "help"){
+    // UrlFetchApp.fetch('http://www.example.com/analytics?event=open'); // Later, throw analytics event
+     window.open("https://google.fr", '_blank').focus();
+  }
+}
+
+function successOneDoc(doc) {
+  document.getElementById('statusText').innerHTML = "<p>Check the result here: <a target='_blank' rel='noopener noreferrer' href = " + doc[0] + ">" + doc[1] + "</a></p><p><button onclick='overlayOff()'>Close</button></p>";
+}
+
+function toggleAccountDiv(){
+  var isAccountDisplayed = window.getComputedStyle(document.getElementById("SD_account_screen_container")).display;
+  
+  if (isAccountDisplayed == "none") {
+    showDiv("SD_account_screen_container");
+    showDiv("Right_buttons_account_screen");
+    hideDiv("SD_main_screen_container");
+    hideDiv("Right_buttons_main_screen");
+  }
+  else {
+    hideDiv("SD_account_screen_container");
+    hideDiv("Right_buttons_account_screen");
+    showDiv("SD_main_screen_container");
+    showDiv("Right_buttons_main_screen");    
+  }
+}
+
+function showDiv(di){
+  document.getElementById(di).style.display = "block";
+}
+
+function hideDiv(di){
+  document.getElementById(di).style.display = "none";
+}
+
+function errorOneDoc(error) {
+  document.getElementById('statusText').innerHTML = error;   // Later, improve by making the error messages more readable
+}
+
+function successAllDoc(blurb) {  // [sd_folder_url, processedDocs, totalDocs];
+ console.log(blurb);
+
+  if (blurb[1] != blurb [2]){ // quota too low to finish
+    document.getElementById('statusText').innerHTML = "<p>In order to create all your documents, please subscribe to SunnyDocs.<p>You can find the documents we have already created <a target='_blank' rel='noopener noreferrer' href = " + blurb[0] + ">here</a></p><p><button onclick='overlayOff()'>Back</button><button class='action' onclick='openUrl(\"subscribe\")'>Subscribe</button></p>";
+    } // end if quota too low to finish
+  else {
+    document.getElementById('statusText').innerHTML = "<p>Find all your documents <a target='_blank' rel='noopener noreferrer' href = " + blurb[0] + ">here</a></p><p><button onclick='google.script.host.close()'>Close</button></p>";
+  }
+    
+ }
+
+function errorAllDoc(error) {
+  document.getElementById('statusText').innerHTML = error;   // Later, improve by making the error messages more readable
+}
+
+function displayQuota(quota){
+  document.getElementById('Quota_text').innerHTML = "You can create <strong>"+parseInt(quota[0],10)+"</strong>/"+parseInt(quota[1],10)+" documents today with SunnyDocs.";
+  document.getElementById('FEdata_quota').innerHTML = parseInt(quota[0],10);
+  hideDiv("loadingOverlay")
+  showDiv("SD_app");
+}
+
+function updateQuota(){
+  google.script.run
+      .withSuccessHandler(displayQuota)
+      .withFailureHandler(doNothing)
+      .getQuota();
+}
+
+//// THINGS TO DO WHEN DOC IS READY
+$(document).ready(function(){
+    //// Save fileNameTemplate in user properties when changes in the input field
+    $("#output_filename").on("change", function(){
+        google.script.run.saveValue("fileNameTemplate", $(this).val(), "document")
+    });
+
+    //// Update displayed quota
+    updateQuota();
+  
+    /// Launch on the selected page (main or account)
+    var initialPage = document.getElementById("initialPage").innerHTML;; 
+    if (initialPage == "account") {
+      showDiv("SD_account_screen_container");
+      showDiv("Right_buttons_account_screen");
+      hideDiv("SD_main_screen_container");
+      hideDiv("Right_buttons_main_screen");
+    }
+
+    // Initiatlize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+
+</script>
