@@ -1,0 +1,145 @@
+#loadingOverlay {
+    position: fixed;
+    display: block;
+    width: 100%;
+    /* Full width (cover the whole page) */
+    height: 100%;
+    /* Full height (cover the whole page) */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ffffff;
+    z-index: 3;
+    /* Specify a stack order in case you're using a different order for other elements */
+}
+
+#overlay {
+    position: fixed;
+    /* Sit on top of the page content */
+    display: none;
+    /* Hidden by default */
+    width: 100%;
+    /* Full width (cover the whole page) */
+    height: 100%;
+    /* Full height (cover the whole page) */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ffffff;
+    z-index: 2;
+    /* Specify a stack order in case you're using a different order for other elements */
+}
+
+#SD_account_screen_container {
+    display: none;
+    /* Hidden by default */
+}
+
+#Right_buttons_account_screen {
+    display: none;
+    /* Hidden by default */
+}
+
+#SD_app {
+    display: none;
+    /* Hidden at launch */
+}
+
+#front_end_data {
+    display: none;
+    /* Always hidden */
+}
+
+.overlayTextClass {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    color: black;
+    transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+}
+
+.callout-quota {
+    margin: 10px 0;
+    padding: 16px;
+    background: rgb(252, 252, 252);
+    width: 100%;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    border: 1px solid #eaeaea;
+    border-radius: 4px;
+}
+
+.upgrade-button {
+    color: #fff;
+    font-weight: 600;
+    background-color: #4287f5;
+    border-color: #4287f5;
+    display: inline-block;
+    cursor: pointer;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    border-radius: 4px;
+    margin: 0;
+    padding: 9px 14px;
+    font-size: 14px;
+    height: 36px;
+    line-height: 16px;
+    background-image: none;
+    border: 1px solid #dadce0;
+    border-image: initial;
+    -webkit-transition: width 2s ease-in;
+    transition: width 2s ease-in;
+}
+
+a .upgrade-button {
+    text-decoration: none;
+    color: #fff!important;
+    font-weight: 600;
+    background-color: #ff486a;
+    border-color: #ff486a;
+}
+
+.tooltip-main {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    font-weight: 700;
+    background: #aaa;
+    border: 1px solid #737373;
+    color: #737373;
+    margin: 4px 121px 0 5px;
+    float: right;
+    text-align: left !important;
+}
+
+.tooltip-qm {
+    float: left;
+    margin: -2px 0px 3px 4px;
+    font-size: 12px;
+}
+
+.tooltip-inner {
+    max-width: 236px !important;
+    height: 76px;
+    font-size: 14px;
+    padding: 10px 15px 10px 20px;
+    background: #ddd;
+    color: rgb(0, 0, 0, .7);
+    border: 1px solid #737373;
+    text-align: left;
+}
+
+.tooltip.show {
+    opacity: 1;
+}
+
+.bs-tooltip-auto[x-placement^=bottom] .arrow::before,
+.bs-tooltip-bottom .arrow::before {
+    border-bottom-color: #f00;
+    /* Red */
+}
